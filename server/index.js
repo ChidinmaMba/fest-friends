@@ -98,22 +98,27 @@ function parseOptionalPersonality(v) {
   return s;
 }
 
-/** Higher = better match for recommendations (traits + stable tie-break). */
+/**
+ * Higher = better match. Only scores age, race, and personality when both users
+ * have non-null values for that field (best fit when traits align).
+ */
 function recommendationScore(me, other) {
   let s = 0;
-  if (me.personalityType && other.personalityType && me.personalityType === other.personalityType) {
-    s += 4;
+  const hasP = (v) => v != null && String(v).trim() !== "";
+  if (hasP(me.personalityType) && hasP(other.personalityType) && me.personalityType === other.personalityType) {
+    s += 100;
   }
-  if (me.race && other.race && me.race === other.race) {
-    s += 2;
+  if (hasP(me.race) && hasP(other.race) && me.race === other.race) {
+    s += 60;
   }
   if (me.age != null && other.age != null) {
     const d = Math.abs(me.age - other.age);
-    if (d <= 3) s += 3;
-    else if (d <= 8) s += 1;
+    if (d <= 3) s += 40;
+    else if (d <= 8) s += 15;
+    else if (d <= 15) s += 5;
   }
   const name = String(other.displayName || other.userId || "");
-  s += (name.charCodeAt(0) || 0) * 0.0001;
+  s += (name.charCodeAt(0) || 0) * 1e-6;
   return s;
 }
 
@@ -247,7 +252,8 @@ app.get("/api/recommendations", (req, res) => {
 
     const me = db.prepare(`SELECT * FROM users WHERE userId = ?`).get(userId);
     if (!me) return bad(res, 404, "User not found.");
-    if (!me.city && !me.region && !me.country) {
+    const myCity = typeof me.city === "string" ? me.city.trim() : "";
+    if (!myCity) {
       return res.json({ ok: true, items: [], needLocation: true });
     }
 
@@ -278,11 +284,10 @@ app.get("/api/recommendations", (req, res) => {
            WHERE r.eventId = ?
              AND r.status = 'going'
              AND u.userId != ?
-             AND COALESCE(u.city,'') = COALESCE(?, '')
-             AND COALESCE(u.region,'') = COALESCE(?, '')
-             AND COALESCE(u.country,'') = COALESCE(?, '')`
+             AND TRIM(COALESCE(u.city, '')) != ''
+             AND LOWER(TRIM(u.city)) = LOWER(?)`
         )
-        .all(eventId, userId, me.city, me.region, me.country);
+        .all(eventId, userId, myCity);
 
       const scored = candidates
         .map((u) => ({ u, score: recommendationScore(me, u) }))

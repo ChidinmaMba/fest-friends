@@ -941,11 +941,15 @@ section {
   letter-spacing: -0.02em;
 }
 
-.recommend-card-age,
+.recommend-card-profile,
 .recommend-card-show {
   font-size: 0.85rem;
   color: var(--text-muted);
   line-height: 1.35;
+}
+
+.recommend-card-profile {
+  display: block;
 }
 
 .recommend-card-show {

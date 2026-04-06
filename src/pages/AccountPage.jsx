@@ -338,7 +338,8 @@ export default function AccountPage() {
             Recommended for you
           </h2>
           <p className="recommend-section-desc">
-            Up to two people per show you’re going to — same city, ranked by your profile traits.
+            Up to two people per show you RSVP’d — same city as you. Ranked by age, race, and personality
+            when you both share those details.
           </p>
         </div>
         {loadingRecs ? (
@@ -379,8 +380,12 @@ export default function AccountPage() {
                   </div>
                   <div className="recommend-card-body">
                     <strong className="recommend-card-name">{item.person.displayName || "Fest Friend"}</strong>
-                    <span className="recommend-card-age">
+                    <span className="recommend-card-profile">
                       {item.person.age != null ? `${item.person.age} years old` : "Age not shared"}
+                      {formatRace(item.person.race) ? ` · ${formatRace(item.person.race)}` : ""}
+                      {formatPersonality(item.person.personalityType)
+                        ? ` · ${formatPersonality(item.person.personalityType)}`
+                        : ""}
                     </span>
                     <span className="recommend-card-show">
                       {formatShowSummary(item.event, formatShowDate)}
