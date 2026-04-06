@@ -7,24 +7,6 @@ async function getJson(path, opts = {}) {
   if (opts.body != null) {
     headers["Content-Type"] = headers["Content-Type"] ?? "application/json";
   }
-  // #region agent log
-  fetch("http://127.0.0.1:7287/ingest/33a6545c-95fa-4ea6-9ed7-b6eaf9d3be21", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "9108f8" },
-    body: JSON.stringify({
-      sessionId: "9108f8",
-      hypothesisId: "H1",
-      location: "localEventsApi.js:getJson",
-      message: "fetch shape",
-      data: {
-        method: String(opts.method || "GET").toUpperCase(),
-        hasBody: opts.body != null,
-        setJsonContentType: Boolean(headers["Content-Type"]),
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
   const res = await fetch(path, {
     ...opts,
     headers,
@@ -115,6 +97,23 @@ export async function sendMessage({ fromUserId, toUserId, body }) {
   return getJson(apiUrl("/api/messages"), {
     method: "POST",
     body: JSON.stringify({ fromUserId, toUserId, body }),
+  });
+}
+
+export async function fetchUnreadMessageCount(userId) {
+  const q = new URLSearchParams({ userId });
+  return getJson(apiUrl(`/api/messages/unread?${q.toString()}`));
+}
+
+export async function fetchMessages(userId) {
+  const q = new URLSearchParams({ userId });
+  return getJson(apiUrl(`/api/messages?${q.toString()}`));
+}
+
+export async function markMessagesRead(userId) {
+  return getJson(apiUrl("/api/messages/mark-read"), {
+    method: "POST",
+    body: JSON.stringify({ userId }),
   });
 }
 

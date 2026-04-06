@@ -162,10 +162,122 @@ body::before {
   filter: brightness(1.05);
 }
 
+.nav-messages-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  padding: 0.45rem 0.55rem;
+  border-radius: 10px;
+  transition: color 0.2s, background 0.2s;
+}
+
+.nav-messages-link:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.nav-messages-icon {
+  display: grid;
+  place-items: center;
+  line-height: 0;
+}
+
+.nav-messages-badge {
+  position: absolute;
+  top: 6px;
+  right: 4px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--bg-deep);
+}
+
 @media (max-width: 640px) {
-  .nav a:not(.btn-nav) {
+  .nav a:not(.btn-nav):not(.nav-messages-link) {
     display: none;
   }
+}
+
+/* Messages inbox */
+.messages-page {
+  padding: 2rem 0 4rem;
+  max-width: 40rem;
+}
+
+.messages-page-head {
+  margin-bottom: 1.5rem;
+}
+
+.messages-page-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(1.35rem, 3vw, 1.75rem);
+  margin: 0 0 0.5rem;
+  letter-spacing: -0.03em;
+}
+
+.messages-page-desc {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.messages-thread-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.messages-bubble {
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.messages-bubble--in {
+  border-color: rgba(124, 92, 255, 0.35);
+  background: rgba(124, 92, 255, 0.08);
+}
+
+.messages-bubble--out {
+  margin-left: 1.5rem;
+}
+
+.messages-bubble-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-bottom: 0.45rem;
+}
+
+.messages-bubble-meta strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.messages-bubble-time {
+  font-size: 0.78rem;
+  opacity: 0.9;
+}
+
+.messages-bubble-body {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 /* Hero */

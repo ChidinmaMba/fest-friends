@@ -1,9 +1,43 @@
-import { Link, Outlet } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { Link, Outlet, useLocation } from "react-router-dom";
 import { useSpotifySession } from "../hooks/useSpotifySession";
+import { fetchUnreadMessageCount } from "../lib/localEventsApi";
 
 export default function Layout() {
   const year = new Date().getFullYear();
-  const { user, loggedIn, logout } = useSpotifySession();
+  const location = useLocation();
+  const { user, taste, loggedIn, logout } = useSpotifySession();
+  const userId = taste?.spotifyUserId || user?.id || null;
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const refreshUnread = useCallback(() => {
+    if (!loggedIn || !userId) {
+      setUnreadCount(0);
+      return;
+    }
+    fetchUnreadMessageCount(userId)
+      .then((r) => setUnreadCount(r.unreadCount ?? 0))
+      .catch(() => {});
+  }, [loggedIn, userId]);
+
+  useEffect(() => {
+    refreshUnread();
+  }, [refreshUnread, location.pathname]);
+
+  useEffect(() => {
+    const onRead = () => refreshUnread();
+    const onVis = () => {
+      if (document.visibilityState === "visible") refreshUnread();
+    };
+    window.addEventListener("ff-messages-read", onRead);
+    document.addEventListener("visibilitychange", onVis);
+    const id = window.setInterval(refreshUnread, 60000);
+    return () => {
+      window.removeEventListener("ff-messages-read", onRead);
+      document.removeEventListener("visibilitychange", onVis);
+      window.clearInterval(id);
+    };
+  }, [refreshUnread]);
 
   return (
     <>
@@ -23,6 +57,19 @@ export default function Layout() {
         <nav className="nav" aria-label="Main">
           {loggedIn ? (
             <>
+              <Link
+                to="/messages"
+                className="nav-messages-link"
+                aria-label={unreadCount > 0 ? `Messages, ${unreadCount} unread` : "Messages"}
+              >
+                <span className="nav-messages-icon" aria-hidden="true">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                    <path d="M22 6l-10 7L2 6" />
+                  </svg>
+                </span>
+                {unreadCount > 0 ? <span className="nav-messages-badge" aria-hidden="true" /> : null}
+              </Link>
               <Link to="/account" className="btn-nav profile-pill">
                 {user?.images?.[0]?.url ? (
                   <img

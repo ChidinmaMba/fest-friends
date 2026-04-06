@@ -307,6 +307,77 @@ app.get("/api/recommendations", (req, res) => {
   }
 });
 
+app.get("/api/messages/unread", (req, res) => {
+  try {
+    const userId = typeof req.query?.userId === "string" ? req.query.userId : null;
+    if (!userId) return bad(res, 400, "userId is required.");
+    const row = db
+      .prepare(
+        `SELECT COUNT(*) AS n FROM messages WHERE toUserId = ? AND readAt IS NULL`
+      )
+      .get(userId);
+    res.json({ ok: true, unreadCount: row?.n ?? 0 });
+  } catch (e) {
+    return bad(res, e.status || 500, e.message || "Failed to count unread messages.");
+  }
+});
+
+app.get("/api/messages", (req, res) => {
+  try {
+    const userId = typeof req.query?.userId === "string" ? req.query.userId : null;
+    if (!userId) return bad(res, 400, "userId is required.");
+    const rows = db
+      .prepare(
+        `SELECT m.messageId, m.fromUserId, m.toUserId, m.body, m.createdAt, m.readAt,
+                uf.displayName AS fromDisplayName, uf.avatarUrl AS fromAvatarUrl,
+                ut.displayName AS toDisplayName, ut.avatarUrl AS toAvatarUrl
+         FROM messages m
+         LEFT JOIN users uf ON uf.userId = m.fromUserId
+         LEFT JOIN users ut ON ut.userId = m.toUserId
+         WHERE m.fromUserId = ? OR m.toUserId = ?
+         ORDER BY datetime(m.createdAt) DESC`
+      )
+      .all(userId, userId);
+    const messages = rows.map((m) => {
+      const out = m.fromUserId === userId;
+      const otherUserId = out ? m.toUserId : m.fromUserId;
+      const otherDisplayName = out ? m.toDisplayName : m.fromDisplayName;
+      const otherAvatarUrl = out ? m.toAvatarUrl : m.fromAvatarUrl;
+      return {
+        messageId: m.messageId,
+        fromUserId: m.fromUserId,
+        toUserId: m.toUserId,
+        body: m.body,
+        createdAt: m.createdAt,
+        readAt: m.readAt,
+        direction: out ? "out" : "in",
+        otherUserId,
+        otherDisplayName: otherDisplayName || null,
+        otherAvatarUrl: otherAvatarUrl || null,
+      };
+    });
+    const unreadCount = db
+      .prepare(`SELECT COUNT(*) AS n FROM messages WHERE toUserId = ? AND readAt IS NULL`)
+      .get(userId);
+    res.json({ ok: true, messages, unreadCount: unreadCount?.n ?? 0 });
+  } catch (e) {
+    return bad(res, e.status || 500, e.message || "Failed to load messages.");
+  }
+});
+
+app.post("/api/messages/mark-read", (req, res) => {
+  try {
+    const userId = requireString(req.body?.userId, "userId");
+    const t = nowIso();
+    const info = db
+      .prepare(`UPDATE messages SET readAt = ? WHERE toUserId = ? AND readAt IS NULL`)
+      .run(t, userId);
+    res.json({ ok: true, updated: info.changes });
+  } catch (e) {
+    return bad(res, e.status || 500, e.message || "Failed to mark messages read.");
+  }
+});
+
 app.post("/api/messages", (req, res) => {
   try {
     const fromUserId = requireString(req.body?.fromUserId, "fromUserId");
@@ -317,8 +388,8 @@ app.post("/api/messages", (req, res) => {
     }
     const messageId = randomUUID();
     db.prepare(
-      `INSERT INTO messages (messageId, fromUserId, toUserId, body, createdAt)
-       VALUES (?, ?, ?, ?, ?)`
+      `INSERT INTO messages (messageId, fromUserId, toUserId, body, createdAt, readAt)
+       VALUES (?, ?, ?, ?, ?, NULL)`
     ).run(messageId, fromUserId, toUserId, text, nowIso());
     res.json({ ok: true, messageId });
   } catch (e) {

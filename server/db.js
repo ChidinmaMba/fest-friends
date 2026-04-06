@@ -93,6 +93,12 @@ function migrate(db) {
   if (!userCols.some((c) => c.name === "avatarUrl")) {
     db.exec(`ALTER TABLE users ADD COLUMN avatarUrl TEXT;`);
   }
+
+  let msgCols = db.prepare(`PRAGMA table_info(messages)`).all();
+  if (!msgCols.some((c) => c.name === "readAt")) {
+    db.exec(`ALTER TABLE messages ADD COLUMN readAt TEXT;`);
+    db.exec(`UPDATE messages SET readAt = createdAt WHERE readAt IS NULL`);
+  }
 }
 
 export function keyify(s) {
